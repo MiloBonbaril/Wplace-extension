@@ -2,3 +2,13 @@
 body {
   background: rgba(0, 0, 0, 0.1);
 }
+
+/* Control panel styling */
+.control-panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 5px;
+  z-index: 1000;
+}

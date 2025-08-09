@@ -8,8 +8,8 @@
 
   function mapToScreen(mapX, mapY, zoom, cameraX, cameraY) {
     return {
-      x: mapX * zoom + cameraX,
-      y: mapY * zoom + cameraY
+      x: Math.round(mapX * zoom + cameraX),
+      y: Math.round(mapY * zoom + cameraY)
     };
   }
 

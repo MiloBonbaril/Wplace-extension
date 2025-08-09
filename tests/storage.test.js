@@ -1,5 +1,10 @@
 const assert = require('assert');
-const { saveOverlayState, loadOverlayState } = require('../wplace-overlay/storage.js');
+const {
+  saveOverlayState,
+  loadOverlayState,
+  exportOverlayConfig,
+  importOverlayConfig
+} = require('../wplace-overlay/storage.js');
 
 function createMockChrome() {
   const store = {};
@@ -40,5 +45,9 @@ global.chrome = createMockChrome();
   await saveOverlayState(state);
   const loaded = await loadOverlayState();
   assert.deepStrictEqual(loaded, state);
+
+  const json = exportOverlayConfig(state);
+  const imported = importOverlayConfig(json);
+  assert.deepStrictEqual(imported, state);
   console.log('storage.test.js passed');
 })();

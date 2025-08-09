@@ -25,10 +25,29 @@
     });
   }
 
+  function exportOverlayConfig(state) {
+    return JSON.stringify(state || {});
+  }
+
+  function importOverlayConfig(text) {
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return {};
+    }
+  }
+
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { saveOverlayState, loadOverlayState };
+    module.exports = {
+      saveOverlayState,
+      loadOverlayState,
+      exportOverlayConfig,
+      importOverlayConfig
+    };
   } else {
     global.saveOverlayState = saveOverlayState;
     global.loadOverlayState = loadOverlayState;
+    global.exportOverlayConfig = exportOverlayConfig;
+    global.importOverlayConfig = importOverlayConfig;
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

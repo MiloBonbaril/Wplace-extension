@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { applyTransform } = require('../wplace-overlay/transform.js');
+const { applyTransform, mapToScreen } = require('../wplace-overlay/transform.js');
 
 function mockCtx() {
   let args = null;
@@ -22,5 +22,9 @@ assert(Math.abs(args[2] + 2) < 1e-10, 'c component');
 assert(Math.abs(args[3] - 0) < 1e-10, 'd component');
 assert.strictEqual(args[4], 10, 'e component');
 assert.strictEqual(args[5], -5, 'f component');
+
+const pos = mapToScreen(10, 5, 2, -3, 4);
+assert.strictEqual(pos.x, 17, 'x position');
+assert.strictEqual(pos.y, 14, 'y position');
 
 console.log('transform.test.js passed');

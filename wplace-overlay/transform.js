@@ -6,9 +6,17 @@
     ctx.setTransform(cos, sin, -sin, cos, x, y);
   }
 
+  function mapToScreen(mapX, mapY, zoom, cameraX, cameraY) {
+    return {
+      x: mapX * zoom + cameraX,
+      y: mapY * zoom + cameraY
+    };
+  }
+
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { applyTransform };
+    module.exports = { applyTransform, mapToScreen };
   } else {
     global.applyTransform = applyTransform;
+    global.mapToScreen = mapToScreen;
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

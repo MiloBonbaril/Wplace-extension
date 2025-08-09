@@ -18,14 +18,53 @@ if (typeof window !== 'undefined') {
 
     const ctx = overlay.getContext('2d');
     let img = null;
-    const state = { x: 0, y: 0, scale: 1, rotation: 0 };
+    const state = { mapX: 0, mapY: 0, scale: 1, rotation: 0 };
+    let zoom = 1;
+    let cameraX = 0;
+    let cameraY = 0;
 
     function draw() {
       if (!ctx || !img) return;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      applyTransform(ctx, state);
+      applyTransform(ctx, { scale: state.scale, rotation: state.rotation });
       ctx.drawImage(img, 0, 0, overlay.width, overlay.height);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function updateOverlay() {
+      const pos = mapToScreen(state.mapX, state.mapY, zoom, cameraX, cameraY);
+      overlay.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${zoom})`;
+      draw();
+    }
+
+    function findTransformElement(el) {
+      let current = el;
+      while (current && current !== document.body) {
+        const style = getComputedStyle(current);
+        if (style.transform && style.transform !== 'none') {
+          return current;
+        }
+        current = current.parentElement;
+      }
+      return null;
+    }
+
+    const transformElement = findTransformElement(canvas);
+
+    function handleTransformChange() {
+      if (!transformElement) return;
+      const style = getComputedStyle(transformElement);
+      const matrix = new DOMMatrix(style.transform);
+      zoom = matrix.a;
+      cameraX = matrix.e;
+      cameraY = matrix.f;
+      updateOverlay();
+    }
+
+    if (transformElement) {
+      const observer = new MutationObserver(handleTransformChange);
+      observer.observe(transformElement, { attributes: true, attributeFilter: ['style'] });
+      handleTransformChange();
     }
 
     // Drag and drop to move image
@@ -42,11 +81,11 @@ if (typeof window !== 'undefined') {
       if (!isDragging) return;
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      state.x += dx;
-      state.y += dy;
+      state.mapX += dx / zoom;
+      state.mapY += dy / zoom;
       lastX = e.clientX;
       lastY = e.clientY;
-      draw();
+      updateOverlay();
     });
     overlay.addEventListener('pointerup', (e) => {
       isDragging = false;
@@ -130,13 +169,13 @@ if (typeof window !== 'undefined') {
         img = image;
         overlay.width = canvas?.width || img.width;
         overlay.height = canvas?.height || img.height;
-        state.x = 0;
-        state.y = 0;
+        state.mapX = 0;
+        state.mapY = 0;
         state.scale = 1;
         state.rotation = 0;
         scaleSlider.value = '1';
         rotationSlider.value = '0';
-        draw();
+        updateOverlay();
         URL.revokeObjectURL(url);
       };
 

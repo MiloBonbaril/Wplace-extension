@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Wplace-extension est un projet qui consiste à fournir une extension permettant de mettre un layer sur la carte de wplace afin de la reproduire sur le site",
   "scripts": {
-    "test": "node tests/transform.test.js"
+    "test": "node tests/transform.test.js && node tests/storage.test.js"
   },
   "keywords": [],
   "author": "",

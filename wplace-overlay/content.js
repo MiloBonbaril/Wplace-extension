@@ -12,6 +12,7 @@ if (typeof window !== 'undefined') {
     overlay.style.left = '0';
     overlay.style.pointerEvents = 'auto';
     overlay.style.cursor = 'move';
+    overlay.style.imageRendering = 'pixelated';
 
     mapContainer.style.position = 'relative';
     mapContainer.appendChild(overlay);
@@ -92,12 +93,12 @@ if (typeof window !== 'undefined') {
       if (!isDragging) return;
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      state.mapX += dx / zoom;
-      state.mapY += dy / zoom;
+      state.mapX = Math.round(state.mapX + dx / zoom);
+      state.mapY = Math.round(state.mapY + dy / zoom);
       lastX = e.clientX;
       lastY = e.clientY;
-      if (xInput) xInput.value = state.mapX.toFixed(0);
-      if (yInput) yInput.value = state.mapY.toFixed(0);
+      if (xInput) xInput.value = state.mapX.toString();
+      if (yInput) yInput.value = state.mapY.toString();
       updateOverlay();
     });
     overlay.addEventListener('pointerup', (e) => {
@@ -126,10 +127,12 @@ if (typeof window !== 'undefined') {
 
     xInput = document.createElement('input');
     xInput.type = 'number';
+    xInput.step = '1';
     xInput.value = '0';
 
     yInput = document.createElement('input');
     yInput.type = 'number';
+    yInput.step = '1';
     yInput.value = '0';
 
     const scaleSlider = document.createElement('input');
@@ -150,7 +153,7 @@ if (typeof window !== 'undefined') {
     opacitySlider.type = 'range';
     opacitySlider.min = '0';
     opacitySlider.max = '1';
-    opacitySlider.step = '0.1';
+    opacitySlider.step = '0.01';
     opacitySlider.value = '1';
 
     scaleSlider.addEventListener('input', () => {
@@ -172,13 +175,15 @@ if (typeof window !== 'undefined') {
     });
 
     xInput.addEventListener('input', () => {
-      state.mapX = parseFloat(xInput.value) || 0;
+      state.mapX = Math.round(parseFloat(xInput.value) || 0);
+      xInput.value = state.mapX.toString();
       updateOverlay();
       saveOverlayState(state);
     });
 
     yInput.addEventListener('input', () => {
-      state.mapY = parseFloat(yInput.value) || 0;
+      state.mapY = Math.round(parseFloat(yInput.value) || 0);
+      yInput.value = state.mapY.toString();
       updateOverlay();
       saveOverlayState(state);
     });
@@ -260,16 +265,72 @@ if (typeof window !== 'undefined') {
       reader.readAsDataURL(file);
     });
 
+    const exportButton = document.createElement('button');
+    exportButton.textContent = 'Export Config';
+    exportButton.addEventListener('click', () => {
+      const json = exportOverlayConfig(state);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'overlay-config.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.accept = 'application/json';
+    importInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imported = importOverlayConfig(reader.result);
+        Object.assign(state, imported);
+        state.mapX = Math.round(state.mapX || 0);
+        state.mapY = Math.round(state.mapY || 0);
+        overlay.style.opacity = state.opacity.toString();
+        overlay.style.display = state.active ? 'block' : 'none';
+        controlsContainer.style.display = state.active ? 'block' : 'none';
+        toggleButton.textContent = state.active ? 'Hide Overlay' : 'Show Overlay';
+        xInput.value = state.mapX;
+        yInput.value = state.mapY;
+        scaleSlider.value = state.scale;
+        rotationSlider.value = ((state.rotation * 180) / Math.PI).toString();
+        opacitySlider.value = state.opacity;
+        if (state.imageSrc) {
+          const image = new Image();
+          image.onload = () => {
+            img = image;
+            overlay.width = canvas?.width || img.width;
+            overlay.height = canvas?.height || img.height;
+            updateOverlay();
+          };
+          image.src = state.imageSrc;
+        } else {
+          draw();
+          updateOverlay();
+        }
+        saveOverlayState(state);
+      };
+      reader.readAsText(file);
+    });
+
     controlsContainer.appendChild(fileInput);
     controlsContainer.appendChild(xInput);
     controlsContainer.appendChild(yInput);
     controlsContainer.appendChild(scaleSlider);
     controlsContainer.appendChild(rotationSlider);
     controlsContainer.appendChild(opacitySlider);
+    controlsContainer.appendChild(exportButton);
+    controlsContainer.appendChild(importInput);
     mapContainer.appendChild(controlPanel);
 
     loadOverlayState().then((saved) => {
       Object.assign(state, saved);
+      state.mapX = Math.round(state.mapX || 0);
+      state.mapY = Math.round(state.mapY || 0);
       overlay.style.opacity = state.opacity.toString();
       overlay.style.display = state.active ? 'block' : 'none';
       controlsContainer.style.display = state.active ? 'block' : 'none';

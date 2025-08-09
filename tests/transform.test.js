@@ -27,4 +27,8 @@ const pos = mapToScreen(10, 5, 2, -3, 4);
 assert.strictEqual(pos.x, 17, 'x position');
 assert.strictEqual(pos.y, 14, 'y position');
 
+const posSnap = mapToScreen(1.2, 2.6, 3, 0.4, 0.4);
+assert.strictEqual(posSnap.x, Math.round(1.2 * 3 + 0.4), 'rounded x position');
+assert.strictEqual(posSnap.y, Math.round(2.6 * 3 + 0.4), 'rounded y position');
+
 console.log('transform.test.js passed');

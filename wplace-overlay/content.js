@@ -18,10 +18,21 @@ if (typeof window !== 'undefined') {
 
     const ctx = overlay.getContext('2d');
     let img = null;
-    const state = { mapX: 0, mapY: 0, scale: 1, rotation: 0 };
+    const state = {
+      mapX: 0,
+      mapY: 0,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      active: true,
+      imageSrc: null
+    };
+    overlay.style.opacity = state.opacity.toString();
     let zoom = 1;
     let cameraX = 0;
     let cameraY = 0;
+    let xInput;
+    let yInput;
 
     function draw() {
       if (!ctx || !img) return;
@@ -85,11 +96,14 @@ if (typeof window !== 'undefined') {
       state.mapY += dy / zoom;
       lastX = e.clientX;
       lastY = e.clientY;
+      if (xInput) xInput.value = state.mapX.toFixed(0);
+      if (yInput) yInput.value = state.mapY.toFixed(0);
       updateOverlay();
     });
     overlay.addEventListener('pointerup', (e) => {
       isDragging = false;
       overlay.releasePointerCapture(e.pointerId);
+      saveOverlayState(state);
     });
     overlay.addEventListener('pointerleave', () => {
       isDragging = false;
@@ -99,9 +113,24 @@ if (typeof window !== 'undefined') {
     const controlPanel = document.createElement('div');
     controlPanel.className = 'control-panel';
 
+    const toggleButton = document.createElement('button');
+    toggleButton.textContent = 'Hide Overlay';
+    controlPanel.appendChild(toggleButton);
+
+    const controlsContainer = document.createElement('div');
+    controlPanel.appendChild(controlsContainer);
+
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
+
+    xInput = document.createElement('input');
+    xInput.type = 'number';
+    xInput.value = '0';
+
+    yInput = document.createElement('input');
+    yInput.type = 'number';
+    yInput.value = '0';
 
     const scaleSlider = document.createElement('input');
     scaleSlider.type = 'range';
@@ -117,14 +146,49 @@ if (typeof window !== 'undefined') {
     rotationSlider.step = '1';
     rotationSlider.value = '0';
 
+    const opacitySlider = document.createElement('input');
+    opacitySlider.type = 'range';
+    opacitySlider.min = '0';
+    opacitySlider.max = '1';
+    opacitySlider.step = '0.1';
+    opacitySlider.value = '1';
+
     scaleSlider.addEventListener('input', () => {
       state.scale = parseFloat(scaleSlider.value);
       draw();
+      saveOverlayState(state);
     });
 
     rotationSlider.addEventListener('input', () => {
       state.rotation = (parseFloat(rotationSlider.value) * Math.PI) / 180;
       draw();
+      saveOverlayState(state);
+    });
+
+    opacitySlider.addEventListener('input', () => {
+      state.opacity = parseFloat(opacitySlider.value);
+      overlay.style.opacity = state.opacity.toString();
+      saveOverlayState(state);
+    });
+
+    xInput.addEventListener('input', () => {
+      state.mapX = parseFloat(xInput.value) || 0;
+      updateOverlay();
+      saveOverlayState(state);
+    });
+
+    yInput.addEventListener('input', () => {
+      state.mapY = parseFloat(yInput.value) || 0;
+      updateOverlay();
+      saveOverlayState(state);
+    });
+
+    toggleButton.addEventListener('click', () => {
+      state.active = !state.active;
+      overlay.style.display = state.active ? 'block' : 'none';
+      controlsContainer.style.display = state.active ? 'block' : 'none';
+      toggleButton.textContent = state.active ? 'Hide Overlay' : 'Show Overlay';
+      saveOverlayState(state);
     });
 
     // Keyboard shortcuts
@@ -135,22 +199,26 @@ if (typeof window !== 'undefined') {
           state.scale = Math.min(state.scale + 0.1, 5);
           scaleSlider.value = state.scale.toFixed(1);
           draw();
+          saveOverlayState(state);
           break;
         case '-':
         case '_':
           state.scale = Math.max(state.scale - 0.1, 0.1);
           scaleSlider.value = state.scale.toFixed(1);
           draw();
+          saveOverlayState(state);
           break;
         case '[':
           state.rotation -= (5 * Math.PI) / 180;
           rotationSlider.value = (state.rotation * 180) / Math.PI;
           draw();
+          saveOverlayState(state);
           break;
         case ']':
           state.rotation += (5 * Math.PI) / 180;
           rotationSlider.value = (state.rotation * 180) / Math.PI;
           draw();
+          saveOverlayState(state);
           break;
         default:
           return;
@@ -162,29 +230,67 @@ if (typeof window !== 'undefined') {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
-      const url = URL.createObjectURL(file);
-      const image = new Image();
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataURL = e.target.result;
+        const image = new Image();
 
-      image.onload = () => {
-        img = image;
-        overlay.width = canvas?.width || img.width;
-        overlay.height = canvas?.height || img.height;
-        state.mapX = 0;
-        state.mapY = 0;
-        state.scale = 1;
-        state.rotation = 0;
-        scaleSlider.value = '1';
-        rotationSlider.value = '0';
-        updateOverlay();
-        URL.revokeObjectURL(url);
+        image.onload = () => {
+          img = image;
+          overlay.width = canvas?.width || img.width;
+          overlay.height = canvas?.height || img.height;
+          state.mapX = 0;
+          state.mapY = 0;
+          state.scale = 1;
+          state.rotation = 0;
+          state.opacity = 1;
+          state.imageSrc = dataURL;
+          xInput.value = '0';
+          yInput.value = '0';
+          scaleSlider.value = '1';
+          rotationSlider.value = '0';
+          opacitySlider.value = '1';
+          overlay.style.opacity = '1';
+          updateOverlay();
+          saveOverlayState(state);
+        };
+
+        image.src = dataURL;
       };
-
-      image.src = url;
+      reader.readAsDataURL(file);
     });
 
-    controlPanel.appendChild(fileInput);
-    controlPanel.appendChild(scaleSlider);
-    controlPanel.appendChild(rotationSlider);
+    controlsContainer.appendChild(fileInput);
+    controlsContainer.appendChild(xInput);
+    controlsContainer.appendChild(yInput);
+    controlsContainer.appendChild(scaleSlider);
+    controlsContainer.appendChild(rotationSlider);
+    controlsContainer.appendChild(opacitySlider);
     mapContainer.appendChild(controlPanel);
+
+    loadOverlayState().then((saved) => {
+      Object.assign(state, saved);
+      overlay.style.opacity = state.opacity.toString();
+      overlay.style.display = state.active ? 'block' : 'none';
+      controlsContainer.style.display = state.active ? 'block' : 'none';
+      toggleButton.textContent = state.active ? 'Hide Overlay' : 'Show Overlay';
+      xInput.value = state.mapX;
+      yInput.value = state.mapY;
+      scaleSlider.value = state.scale;
+      rotationSlider.value = ((state.rotation * 180) / Math.PI).toString();
+      opacitySlider.value = state.opacity;
+      if (state.imageSrc) {
+        const image = new Image();
+        image.onload = () => {
+          img = image;
+          overlay.width = canvas?.width || img.width;
+          overlay.height = canvas?.height || img.height;
+          updateOverlay();
+        };
+        image.src = state.imageSrc;
+      } else {
+        updateOverlay();
+      }
+    });
   });
 }

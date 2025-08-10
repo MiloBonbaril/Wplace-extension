@@ -1,6 +1,6 @@
 // Content script for Wplace Overlay
 if (typeof window !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
+  function init() {
     console.log('Wplace Overlay activated');
 
     const canvas = document.querySelector('canvas');
@@ -325,7 +325,7 @@ if (typeof window !== 'undefined') {
     controlsContainer.appendChild(opacitySlider);
     controlsContainer.appendChild(exportButton);
     controlsContainer.appendChild(importInput);
-    mapContainer.appendChild(controlPanel);
+    document.body.appendChild(controlPanel);
 
     loadOverlayState().then((saved) => {
       Object.assign(state, saved);
@@ -353,5 +353,11 @@ if (typeof window !== 'undefined') {
         updateOverlay();
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 }
